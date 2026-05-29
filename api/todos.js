@@ -6,7 +6,7 @@
 
 const NOTION_VERSION = '2022-06-28';
 const NOTION_API = 'https://api.notion.com/v1';
-const DB_ID = process.env.NOTION_DB_ID || '36f0fb7d-31de-80d2-afa9-000bb3e97b4a';
+const DB_ID = process.env.NOTION_DB_ID || '36f0fb7d-31de-8037-af78-cf3134d6c0b4';
 
 // 요청 인증: Authorization: Bearer <password> 헤더 검증
 function isAuthorized(req) {
