@@ -70,31 +70,23 @@
     }
 
     /* ── 모드 배지 ── */
+    /* 개발자 모드일 때만 보이는 극소 점 */
     #mode-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      margin-top: 8px;
-      padding: 3px 12px;
-      border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: rgba(255,255,255,.22);
-      color: #fff;
-      border: 1.5px solid rgba(255,255,255,.4);
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0);
+      margin-top: 6px;
+      transition: background .3s;
       cursor: default;
+      display: block;
     }
-    #mode-badge.dev { background: rgba(255,255,255,.35); }
-    #sync-btn {
-      background: none;
-      border: none;
-      color: rgba(255,255,255,.85);
-      font-size: 0.75rem;
+    #mode-badge.dev {
+      background: rgba(255,255,255,.85);
       cursor: pointer;
-      margin-left: 4px;
-      padding: 0;
     }
-    #sync-btn:hover { color: #fff; }
+    #sync-btn {
+      display: none; /* 동기화는 점 클릭으로 대체 */
+    }
 
     /* ── 입력 영역 ── */
     #input-area {
@@ -296,19 +288,7 @@
     #clear-done:hover { border-color: var(--pink); color: var(--pink); }
 
     /* ── 로그아웃 버튼 ── */
-    #logout-btn {
-      display: none;
-      margin: 10px auto 0;
-      background: none;
-      border: 2px solid rgba(255,255,255,.4);
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 0.72rem;
-      color: rgba(255,255,255,.8);
-      cursor: pointer;
-      transition: all .18s;
-    }
-    #logout-btn:hover { border-color: #fff; color: #fff; }
+    #logout-btn { display: none; } /* 점 클릭으로 대체 */
 
     /* ── 토스트 알림 ── */
     #toast {
@@ -424,8 +404,8 @@
     <span class="stat-chip" id="stat-done">완료 0</span>
     <span class="stat-chip" id="stat-left">남은 것 0</span>
   </div>
-  <div id="mode-badge">🔓 게스트 모드</div>
-  <button id="logout-btn">로그아웃</button>
+  <div id="mode-badge" title=""></div>
+  <button id="logout-btn" style="display:none"></button>
 </header>
 
 <!-- 입력 -->
@@ -723,23 +703,11 @@
   }
 
   function updateModeBadge() {
-    const badge  = document.getElementById('mode-badge');
-    const logout = document.getElementById('logout-btn');
-    if (devMode) {
-      badge.className = 'dev';
-      badge.innerHTML = isSyncing
-        ? '🔄 동기화 중...'
-        : `🔐 개발자 모드 <button id="sync-btn" title="새로고침">↻</button>`;
-      logout.style.display = 'block';
-      document.getElementById('sync-btn')?.addEventListener('click', e => {
-        e.stopPropagation();
-        syncFromNotion();
-      });
-    } else {
-      badge.className = '';
-      badge.textContent = '🔓 게스트 모드';
-      logout.style.display = 'none';
-    }
+    const badge = document.getElementById('mode-badge');
+    badge.classList.toggle('dev', devMode);
+    badge.title = devMode
+      ? (isSyncing ? '동기화 중...' : 'Notion 연동 중 · 클릭 시 해제')
+      : '';
   }
 
   /* ═══════════════════════════════════
@@ -839,9 +807,14 @@
   });
 
   // 로그아웃
-  document.getElementById('logout-btn').addEventListener('click', e => {
+  // 점 클릭 → 동기화 or 로그아웃
+  document.getElementById('mode-badge').addEventListener('click', e => {
     e.stopPropagation();
-    if (confirm('게스트 모드로 전환하시겠어요?')) logout();
+    if (!devMode) return;
+    if (isSyncing) return;
+    const action = confirm('Notion과 동기화할까요?\n취소를 누르면 로컬 모드로 전환됩니다.');
+    if (action) syncFromNotion();
+    else if (confirm('로컬 모드로 전환하시겠어요?')) logout();
   });
 
   // 모달 버튼
