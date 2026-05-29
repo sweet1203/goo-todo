@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🌸 오늘의 할일</title>
   <style>
-    /* ── 기본 리셋 & 변수 ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -28,7 +27,7 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100dvh;
-      padding-bottom: 40px;
+      padding-bottom: 60px;
     }
 
     /* ── 헤더 ── */
@@ -40,6 +39,8 @@
       position: sticky;
       top: 0;
       z-index: 100;
+      cursor: pointer; /* 5번 탭으로 개발자 모드 */
+      user-select: none;
     }
     header h1 {
       font-size: 1.55rem;
@@ -68,16 +69,40 @@
       font-weight: 600;
     }
 
+    /* ── 모드 배지 ── */
+    #mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(255,255,255,.22);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,.4);
+      cursor: default;
+    }
+    #mode-badge.dev { background: rgba(255,255,255,.35); }
+    #sync-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,.85);
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-left: 4px;
+      padding: 0;
+    }
+    #sync-btn:hover { color: #fff; }
+
     /* ── 입력 영역 ── */
     #input-area {
       max-width: 480px;
       margin: 20px auto 0;
       padding: 0 16px;
     }
-    #input-row {
-      display: flex;
-      gap: 10px;
-    }
+    #input-row { display: flex; gap: 10px; }
     #new-todo {
       flex: 1;
       border: 2.5px solid var(--pink-lt);
@@ -99,16 +124,13 @@
       background: linear-gradient(135deg, var(--pink), var(--lavender));
       border: none;
       border-radius: var(--radius);
-      width: 52px;
-      height: 52px;
+      width: 52px; height: 52px;
       font-size: 1.6rem;
       color: #fff;
       cursor: pointer;
       box-shadow: var(--shadow);
-      transition: transform .15s, box-shadow .15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      transition: transform .15s;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
     #add-btn:active { transform: scale(.92); }
@@ -164,6 +186,7 @@
       animation: fadeIn .25s ease;
       position: relative;
     }
+    .todo-card.syncing { opacity: .65; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -177,8 +200,7 @@
     /* 커스텀 체크박스 */
     .cb-wrap {
       position: relative;
-      width: 26px;
-      height: 26px;
+      width: 26px; height: 26px;
       flex-shrink: 0;
       margin-top: 1px;
     }
@@ -194,9 +216,7 @@
       border: 2.5px solid var(--pink-lt);
       border-radius: 8px;
       background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 1rem;
       transition: all .18s;
       pointer-events: none;
@@ -207,14 +227,13 @@
     }
     .cb-wrap input:checked + .cb-box::after { content: '✓'; color: #fff; font-weight: 800; }
 
-    /* 텍스트 영역 */
+    /* 텍스트 */
     .todo-body { flex: 1; min-width: 0; }
     .todo-text {
       font-size: 0.98rem;
       font-weight: 600;
       line-height: 1.4;
       word-break: break-all;
-      transition: color .2s, text-decoration .2s;
     }
     .todo-card.done .todo-text {
       text-decoration: line-through;
@@ -234,6 +253,7 @@
     }
     .chip-created { background: #f0e6ff; color: var(--lavender); }
     .chip-done    { background: #d9f5ea; color: #4caf8a; }
+    .chip-notion  { background: #e8f0fe; color: #4a6fa5; }
 
     /* 삭제 버튼 */
     .del-btn {
@@ -260,7 +280,7 @@
     #empty .emoji { font-size: 3rem; display: block; margin-bottom: 12px; }
     #empty p { font-size: 0.9rem; line-height: 1.6; }
 
-    /* ── 전체 삭제 ── */
+    /* ── 완료 삭제 버튼 ── */
     #clear-done {
       display: block;
       margin: 20px auto 0;
@@ -275,7 +295,102 @@
     }
     #clear-done:hover { border-color: var(--pink); color: var(--pink); }
 
-    /* ── 반응형: 태블릿/데스크톱 ── */
+    /* ── 로그아웃 버튼 ── */
+    #logout-btn {
+      display: none;
+      margin: 10px auto 0;
+      background: none;
+      border: 2px solid rgba(255,255,255,.4);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,.8);
+      cursor: pointer;
+      transition: all .18s;
+    }
+    #logout-btn:hover { border-color: #fff; color: #fff; }
+
+    /* ── 토스트 알림 ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #5a4a6a;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform .3s ease;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── 비밀번호 모달 ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(90,74,106,.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    #modal-overlay.show { display: flex; }
+    #modal {
+      background: #fff;
+      border-radius: 24px;
+      padding: 32px 28px;
+      width: min(360px, 90vw);
+      box-shadow: 0 12px 40px rgba(0,0,0,.18);
+      animation: popIn .2s ease;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    #modal h2 { font-size: 1.15rem; color: var(--text); margin-bottom: 6px; }
+    #modal p  { font-size: 0.8rem; color: var(--sub); margin-bottom: 20px; line-height: 1.5; }
+    #modal-pw {
+      width: 100%;
+      border: 2.5px solid var(--pink-lt);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 1rem;
+      color: var(--text);
+      outline: none;
+      margin-bottom: 14px;
+      transition: border-color .2s;
+    }
+    #modal-pw:focus { border-color: var(--pink); }
+    #modal-err {
+      font-size: 0.78rem;
+      color: var(--pink);
+      margin-bottom: 10px;
+      min-height: 18px;
+    }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btns button {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    .modal-btns button:active { transform: scale(.95); }
+    #modal-cancel { background: #f3f0f8; color: var(--sub); }
+    #modal-ok {
+      background: linear-gradient(135deg, var(--pink), var(--lavender));
+      color: #fff;
+    }
+
     @media (min-width: 520px) {
       header h1 { font-size: 1.8rem; }
     }
@@ -283,8 +398,25 @@
 </head>
 <body>
 
-<!-- 헤더 -->
-<header>
+<!-- 비밀번호 모달 -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>🔐 개발자 모드</h2>
+    <p>비밀번호를 입력하면 Notion DB와 동기화됩니다.<br>게스트는 취소를 눌러 로컬 모드로 사용하세요.</p>
+    <input id="modal-pw" type="password" placeholder="비밀번호 입력..." autocomplete="current-password" />
+    <div id="modal-err"></div>
+    <div class="modal-btns">
+      <button id="modal-cancel">취소</button>
+      <button id="modal-ok">로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<!-- 헤더 (5번 탭 → 개발자 모드) -->
+<header id="header-area">
   <h1>🌸 오늘의 할일</h1>
   <div id="today-label"></div>
   <div id="stats">
@@ -292,6 +424,8 @@
     <span class="stat-chip" id="stat-done">완료 0</span>
     <span class="stat-chip" id="stat-left">남은 것 0</span>
   </div>
+  <div id="mode-badge">🔓 게스트 모드</div>
+  <button id="logout-btn">로그아웃</button>
 </header>
 
 <!-- 입력 -->
@@ -312,7 +446,6 @@
 <!-- 할일 목록 -->
 <div id="list-wrap"></div>
 
-<!-- 완료 항목 전체 삭제 -->
 <button id="clear-done">✨ 완료된 항목 지우기</button>
 
 <!-- 빈 상태 -->
@@ -322,47 +455,217 @@
 </div>
 
 <script>
-  /* ───────────── 상태 & 스토리지 ───────────── */
-  const STORAGE_KEY = 'kawaii_todos_v1';
+  /* ───────── 상수 ───────── */
+  const STORAGE_KEY  = 'kawaii_todos_v1';
+  const TOKEN_KEY    = 'kawaii_dev_token';
+  const API_BASE     = '/api';
 
-  // Safari 시크릿 모드 등 localStorage가 차단된 환경 대응
+  /* ───────── 상태 ───────── */
+  let todos   = [];
+  let filter  = 'all';
+  let devMode = false;      // true = 개발자 (Notion 동기화)
+  let devToken = null;      // Bearer 토큰
+  let isSyncing = false;    // Notion 동기화 중 여부
+
+  /* ───────── localStorage ───────── */
   function isStorageAvailable() {
-    try { localStorage.setItem('__test__','1'); localStorage.removeItem('__test__'); return true; }
+    try { localStorage.setItem('__t__','1'); localStorage.removeItem('__t__'); return true; }
     catch { return false; }
   }
   const HAS_STORAGE = isStorageAvailable();
 
-  function load() {
+  function loadLocal() {
     if (!HAS_STORAGE) return [];
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
     catch { return []; }
   }
-  function save(todos) {
+  function saveLocal(list) {
     if (!HAS_STORAGE) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   }
 
-  // 빠른 연속 추가 시 Date.now() 중복 방지
+  /* ───────── ID 생성 ───────── */
   let _idCounter = Date.now();
   function nextId() { return ++_idCounter; }
 
-  let todos  = load();           // [{id, text, createdAt, doneAt|null}]
-  let filter = 'all';            // 'all' | 'active' | 'done'
-
-  /* ───────────── 날짜 포맷 ───────────── */
+  /* ───────── 날짜 포맷 ───────── */
   function fmtDate(iso) {
+    if (!iso) return '';
     const d = new Date(iso);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} `
-         + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
   function todayStr() {
     const d = new Date();
-    const days = ['일','월','화','수','목','금','토'];
-    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
   }
 
-  /* ───────────── 렌더링 ───────────── */
+  /* ───────── 토스트 ───────── */
+  let _toastTimer;
+  function toast(msg, duration = 2200) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  /* ───────── XSS 방어 ───────── */
+  function esc(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+              .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+  }
+
+  /* ═══════════════════════════════════
+     Notion API 호출 헬퍼
+  ═══════════════════════════════════ */
+  function apiHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${devToken}` };
+  }
+
+  async function apiFetch(path, opts = {}) {
+    const res = await fetch(API_BASE + path, {
+      ...opts,
+      headers: { ...apiHeaders(), ...(opts.headers || {}) },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `API 오류 ${res.status}`);
+    }
+    return res.json();
+  }
+
+  /* ── Notion에서 목록 동기화 ── */
+  async function syncFromNotion() {
+    isSyncing = true;
+    updateModeBadge();
+    try {
+      const data = await apiFetch('/todos');
+      // notionId가 없는 로컬 전용 항목(게스트 때 작성)은 제거하고 Notion 데이터로 교체
+      todos = data.todos.map(t => ({
+        id: t.notionId,           // 앱 내부 ID로 notionId 사용
+        notionId: t.notionId,
+        text: t.text,
+        createdAt: t.createdAt,
+        doneAt: t.doneAt,
+      }));
+      render();
+      toast('✅ Notion과 동기화됐어요');
+    } catch (e) {
+      toast(`⚠️ 동기화 실패: ${e.message}`);
+    } finally {
+      isSyncing = false;
+      updateModeBadge();
+    }
+  }
+
+  /* ── Notion에 새 항목 생성 ── */
+  async function notionCreate(todo) {
+    const data = await apiFetch('/todos', {
+      method: 'POST',
+      body: JSON.stringify({ text: todo.text, createdAt: todo.createdAt }),
+    });
+    return data.notionId;
+  }
+
+  /* ── Notion 완료일 업데이트 ── */
+  async function notionPatch(notionId, doneAt) {
+    await apiFetch('/todos', {
+      method: 'PATCH',
+      body: JSON.stringify({ notionId, doneAt }),
+    });
+  }
+
+  /* ── Notion 삭제(아카이브) ── */
+  async function notionDelete(notionId) {
+    await apiFetch('/todos', {
+      method: 'DELETE',
+      body: JSON.stringify({ notionId }),
+    });
+  }
+
+  /* ═══════════════════════════════════
+     CRUD
+  ═══════════════════════════════════ */
+  async function add(text) {
+    text = text.trim();
+    if (!text) return;
+
+    const now = new Date().toISOString();
+    const todo = { id: nextId(), text, createdAt: now, doneAt: null, notionId: null };
+    todos.unshift(todo);
+    render();
+
+    if (devMode) {
+      try {
+        const notionId = await notionCreate(todo);
+        todo.notionId = notionId;
+        todo.id = notionId; // ID를 notionId로 교체
+        render();
+        toast('📝 Notion에 저장됐어요');
+      } catch (e) {
+        toast(`⚠️ Notion 저장 실패: ${e.message}`);
+      }
+    } else {
+      saveLocal(todos);
+    }
+  }
+
+  async function toggle(id, checked) {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+
+    const doneAt = checked ? new Date().toISOString() : null;
+    todo.doneAt = doneAt;
+    render();
+
+    if (devMode && todo.notionId) {
+      try {
+        await notionPatch(todo.notionId, doneAt);
+        toast(checked ? '✅ Notion에 완료 기록됐어요' : '↩️ 완료 취소됐어요');
+      } catch (e) {
+        toast(`⚠️ Notion 업데이트 실패: ${e.message}`);
+      }
+    } else {
+      saveLocal(todos);
+    }
+  }
+
+  async function del(id) {
+    const todo = todos.find(t => t.id === id);
+    todos = todos.filter(t => t.id !== id);
+    render();
+
+    if (devMode && todo?.notionId) {
+      try {
+        await notionDelete(todo.notionId);
+        toast('🗑 Notion에서도 삭제됐어요');
+      } catch (e) {
+        toast(`⚠️ Notion 삭제 실패: ${e.message}`);
+      }
+    } else {
+      saveLocal(todos);
+    }
+  }
+
+  function clearDone() {
+    const doneTodos = todos.filter(t => t.doneAt);
+    todos = todos.filter(t => !t.doneAt);
+    render();
+
+    if (devMode) {
+      doneTodos.forEach(t => {
+        if (t.notionId) notionDelete(t.notionId).catch(() => {});
+      });
+      toast(`🧹 Notion에서 완료 ${doneTodos.length}개 삭제됐어요`);
+    } else {
+      saveLocal(todos);
+    }
+  }
+
+  /* ═══════════════════════════════════
+     렌더링
+  ═══════════════════════════════════ */
   function filtered() {
     if (filter === 'active') return todos.filter(t => !t.doneAt);
     if (filter === 'done')   return todos.filter(t =>  t.doneAt);
@@ -370,12 +673,11 @@
   }
 
   function render() {
-    const list = document.getElementById('list-wrap');
+    const list  = document.getElementById('list-wrap');
     const empty = document.getElementById('empty');
     list.innerHTML = '';
 
     const items = filtered();
-
     if (items.length === 0) {
       empty.style.display = 'block';
     } else {
@@ -391,28 +693,24 @@
             <span class="cb-box"></span>
           </label>
           <div class="todo-body">
-            <div class="todo-text">${escHtml(todo.text)}</div>
+            <div class="todo-text">${esc(todo.text)}</div>
             <div class="todo-meta">
               <span class="meta-chip chip-created">📅 ${fmtDate(todo.createdAt)}</span>
-              ${todo.doneAt
-                ? `<span class="meta-chip chip-done">✅ 완료 ${fmtDate(todo.doneAt)}</span>`
-                : ''}
+              ${todo.doneAt ? `<span class="meta-chip chip-done">✅ ${fmtDate(todo.doneAt)}</span>` : ''}
+              ${devMode && todo.notionId ? `<span class="meta-chip chip-notion">📒 Notion</span>` : ''}
             </div>
           </div>
           <button class="del-btn" aria-label="삭제">🗑</button>
         `;
 
-        // 체크박스 토글
         card.querySelector('input[type=checkbox]').addEventListener('change', e => {
           toggle(todo.id, e.target.checked);
         });
-        // 삭제
         card.querySelector('.del-btn').addEventListener('click', () => del(todo.id));
 
         list.appendChild(card);
       });
     }
-
     updateStats();
   }
 
@@ -424,43 +722,94 @@
     document.getElementById('stat-left').textContent  = `남은 것 ${total - done}`;
   }
 
-  /* ───────────── CRUD ───────────── */
-  function add(text) {
-    text = text.trim();
-    if (!text) return;
-    todos.unshift({ id: nextId(), text, createdAt: new Date().toISOString(), doneAt: null });
-    save(todos);
+  function updateModeBadge() {
+    const badge  = document.getElementById('mode-badge');
+    const logout = document.getElementById('logout-btn');
+    if (devMode) {
+      badge.className = 'dev';
+      badge.innerHTML = isSyncing
+        ? '🔄 동기화 중...'
+        : `🔐 개발자 모드 <button id="sync-btn" title="새로고침">↻</button>`;
+      logout.style.display = 'block';
+      document.getElementById('sync-btn')?.addEventListener('click', e => {
+        e.stopPropagation();
+        syncFromNotion();
+      });
+    } else {
+      badge.className = '';
+      badge.textContent = '🔓 게스트 모드';
+      logout.style.display = 'none';
+    }
+  }
+
+  /* ═══════════════════════════════════
+     인증
+  ═══════════════════════════════════ */
+  function showModal() {
+    document.getElementById('modal-overlay').classList.add('show');
+    document.getElementById('modal-pw').value = '';
+    document.getElementById('modal-err').textContent = '';
+    setTimeout(() => document.getElementById('modal-pw').focus(), 100);
+  }
+  function hideModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+  }
+
+  async function tryLogin(password) {
+    document.getElementById('modal-err').textContent = '';
+    document.getElementById('modal-ok').textContent = '확인 중...';
+    try {
+      const res = await fetch(`${API_BASE}/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        devToken = data.token;
+        if (HAS_STORAGE) localStorage.setItem(TOKEN_KEY, devToken);
+        devMode = true;
+        hideModal();
+        updateModeBadge();
+        await syncFromNotion();
+      } else {
+        document.getElementById('modal-err').textContent = data.error || '비밀번호가 틀렸어요 🙅';
+      }
+    } catch {
+      document.getElementById('modal-err').textContent = '서버 연결 실패. 잠시 후 다시 시도해주세요.';
+    } finally {
+      document.getElementById('modal-ok').textContent = '로그인';
+    }
+  }
+
+  function logout() {
+    devMode  = false;
+    devToken = null;
+    if (HAS_STORAGE) localStorage.removeItem(TOKEN_KEY);
+    todos = loadLocal();
     render();
+    updateModeBadge();
+    toast('👋 게스트 모드로 전환됐어요');
   }
 
-  function toggle(id, checked) {
-    todos = todos.map(t =>
-      t.id === id ? { ...t, doneAt: checked ? new Date().toISOString() : null } : t
-    );
-    save(todos);
-    render();
-  }
+  /* ═══════════════════════════════════
+     이벤트 바인딩
+  ═══════════════════════════════════ */
 
-  function del(id) {
-    todos = todos.filter(t => t.id !== id);
-    save(todos);
-    render();
-  }
+  // 헤더 5번 탭 → 개발자 모드 모달
+  let tapCount = 0, tapTimer;
+  document.getElementById('header-area').addEventListener('click', () => {
+    if (devMode) return;
+    clearTimeout(tapTimer);
+    tapCount++;
+    if (tapCount >= 5) {
+      tapCount = 0;
+      showModal();
+    }
+    tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
+  });
 
-  function clearDone() {
-    todos = todos.filter(t => !t.doneAt);
-    save(todos);
-    render();
-  }
-
-  /* ───────────── XSS 방어 ───────────── */
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;')
-              .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-              .replace(/'/g,'&#x27;');
-  }
-
-  /* ───────────── 이벤트 바인딩 ───────────── */
+  // 추가 버튼
   document.getElementById('add-btn').addEventListener('click', () => {
     const inp = document.getElementById('new-todo');
     add(inp.value);
@@ -468,14 +817,12 @@
     inp.focus();
   });
 
+  // Enter 키 (IME 중복 방지)
   document.getElementById('new-todo').addEventListener('keydown', e => {
-    // e.isComposing: 한글/일본어 등 IME 조합 중일 때 true
-    // 조합 확정 Enter와 실제 Enter를 구분해서 중복 추가 방지
-    if (e.key === 'Enter' && !e.isComposing) {
-      document.getElementById('add-btn').click();
-    }
+    if (e.key === 'Enter' && !e.isComposing) document.getElementById('add-btn').click();
   });
 
+  // 필터 탭
   document.getElementById('filter-tabs').addEventListener('click', e => {
     const tab = e.target.closest('.tab');
     if (!tab) return;
@@ -484,15 +831,56 @@
     render();
   });
 
+  // 완료 항목 전체 삭제
   document.getElementById('clear-done').addEventListener('click', () => {
     const count = todos.filter(t => t.doneAt).length;
     if (count === 0) return;
     if (confirm(`완료된 항목 ${count}개를 모두 삭제할까요?`)) clearDone();
   });
 
-  /* ───────────── 초기화 ───────────── */
+  // 로그아웃
+  document.getElementById('logout-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (confirm('게스트 모드로 전환하시겠어요?')) logout();
+  });
+
+  // 모달 버튼
+  document.getElementById('modal-cancel').addEventListener('click', hideModal);
+  document.getElementById('modal-ok').addEventListener('click', () => {
+    tryLogin(document.getElementById('modal-pw').value);
+  });
+  document.getElementById('modal-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) document.getElementById('modal-ok').click();
+  });
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) hideModal();
+  });
+
+  /* ═══════════════════════════════════
+     초기화
+  ═══════════════════════════════════ */
   document.getElementById('today-label').textContent = todayStr();
-  render();
+
+  // 저장된 토큰이 있으면 자동 개발자 모드 진입 시도
+  const savedToken = HAS_STORAGE && localStorage.getItem(TOKEN_KEY);
+  if (savedToken) {
+    devToken = savedToken;
+    devMode  = true;
+    updateModeBadge();
+    syncFromNotion().catch(() => {
+      // 토큰 만료 등으로 실패 시 게스트로 폴백
+      devMode  = false;
+      devToken = null;
+      localStorage.removeItem(TOKEN_KEY);
+      todos = loadLocal();
+      render();
+      updateModeBadge();
+    });
+  } else {
+    todos = loadLocal();
+    render();
+    updateModeBadge();
+  }
 </script>
 </body>
 </html>
