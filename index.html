@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌸 오늘의 할일</title>
+  <style>
+    /* ── 기본 리셋 & 변수 ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pink:    #ff8fab;
+      --pink-lt: #ffb3c6;
+      --peach:   #ffd6a5;
+      --mint:    #b5ead7;
+      --lavender:#c7b8ea;
+      --bg:      #fff0f5;
+      --card:    #ffffff;
+      --text:    #5a4a6a;
+      --sub:     #a094b0;
+      --done-bg: #f3f0f8;
+      --radius:  18px;
+      --shadow:  0 4px 20px rgba(200,150,180,.18);
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: 40px;
+    }
+
+    /* ── 헤더 ── */
+    header {
+      background: linear-gradient(135deg, var(--pink) 0%, var(--lavender) 100%);
+      padding: 28px 20px 22px;
+      text-align: center;
+      box-shadow: 0 3px 14px rgba(255,100,150,.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.3px;
+      text-shadow: 0 2px 6px rgba(0,0,0,.12);
+    }
+    #today-label {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,.85);
+      margin-top: 4px;
+    }
+    #stats {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .stat-chip {
+      background: rgba(255,255,255,.28);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.75rem;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ── 입력 영역 ── */
+    #input-area {
+      max-width: 480px;
+      margin: 20px auto 0;
+      padding: 0 16px;
+    }
+    #input-row {
+      display: flex;
+      gap: 10px;
+    }
+    #new-todo {
+      flex: 1;
+      border: 2.5px solid var(--pink-lt);
+      border-radius: var(--radius);
+      padding: 13px 18px;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--card);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      box-shadow: var(--shadow);
+    }
+    #new-todo::placeholder { color: #cdb8d6; }
+    #new-todo:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 4px rgba(255,143,171,.18);
+    }
+    #add-btn {
+      background: linear-gradient(135deg, var(--pink), var(--lavender));
+      border: none;
+      border-radius: var(--radius);
+      width: 52px;
+      height: 52px;
+      font-size: 1.6rem;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform .15s, box-shadow .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    #add-btn:active { transform: scale(.92); }
+
+    /* ── 필터 탭 ── */
+    #filter-tabs {
+      max-width: 480px;
+      margin: 16px auto 0;
+      padding: 0 16px;
+      display: flex;
+      gap: 8px;
+    }
+    .tab {
+      flex: 1;
+      padding: 8px 0;
+      border: 2px solid var(--pink-lt);
+      border-radius: 30px;
+      background: var(--card);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--sub);
+      cursor: pointer;
+      transition: all .18s;
+      text-align: center;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, var(--pink), var(--lavender));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(255,143,171,.3);
+    }
+
+    /* ── 리스트 ── */
+    #list-wrap {
+      max-width: 480px;
+      margin: 16px auto 0;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── 할일 카드 ── */
+    .todo-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--pink-lt);
+      animation: fadeIn .25s ease;
+      position: relative;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .todo-card.done {
+      background: var(--done-bg);
+      border-left-color: var(--mint);
+      opacity: .85;
+    }
+
+    /* 커스텀 체크박스 */
+    .cb-wrap {
+      position: relative;
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .cb-wrap input[type=checkbox] {
+      position: absolute;
+      opacity: 0;
+      width: 100%; height: 100%;
+      margin: 0; cursor: pointer;
+      z-index: 2;
+    }
+    .cb-box {
+      width: 26px; height: 26px;
+      border: 2.5px solid var(--pink-lt);
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      transition: all .18s;
+      pointer-events: none;
+    }
+    .cb-wrap input:checked + .cb-box {
+      background: linear-gradient(135deg, var(--mint), #8de1c0);
+      border-color: transparent;
+    }
+    .cb-wrap input:checked + .cb-box::after { content: '✓'; color: #fff; font-weight: 800; }
+
+    /* 텍스트 영역 */
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-text {
+      font-size: 0.98rem;
+      font-weight: 600;
+      line-height: 1.4;
+      word-break: break-all;
+      transition: color .2s, text-decoration .2s;
+    }
+    .todo-card.done .todo-text {
+      text-decoration: line-through;
+      color: var(--sub);
+    }
+    .todo-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .meta-chip {
+      font-size: 0.68rem;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-weight: 600;
+    }
+    .chip-created { background: #f0e6ff; color: var(--lavender); }
+    .chip-done    { background: #d9f5ea; color: #4caf8a; }
+
+    /* 삭제 버튼 */
+    .del-btn {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: #ddc8e8;
+      padding: 2px 4px;
+      border-radius: 8px;
+      transition: color .15s, background .15s;
+      flex-shrink: 0;
+      align-self: flex-start;
+    }
+    .del-btn:hover { color: var(--pink); background: #ffedf2; }
+
+    /* ── 빈 상태 ── */
+    #empty {
+      text-align: center;
+      padding: 50px 20px 20px;
+      color: var(--sub);
+      display: none;
+    }
+    #empty .emoji { font-size: 3rem; display: block; margin-bottom: 12px; }
+    #empty p { font-size: 0.9rem; line-height: 1.6; }
+
+    /* ── 전체 삭제 ── */
+    #clear-done {
+      display: block;
+      margin: 20px auto 0;
+      background: none;
+      border: 2px solid #e8d5f0;
+      border-radius: 20px;
+      padding: 7px 20px;
+      font-size: 0.78rem;
+      color: var(--sub);
+      cursor: pointer;
+      transition: all .18s;
+    }
+    #clear-done:hover { border-color: var(--pink); color: var(--pink); }
+
+    /* ── 반응형: 태블릿/데스크톱 ── */
+    @media (min-width: 520px) {
+      header h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header>
+  <h1>🌸 오늘의 할일</h1>
+  <div id="today-label"></div>
+  <div id="stats">
+    <span class="stat-chip" id="stat-total">전체 0</span>
+    <span class="stat-chip" id="stat-done">완료 0</span>
+    <span class="stat-chip" id="stat-left">남은 것 0</span>
+  </div>
+</header>
+
+<!-- 입력 -->
+<div id="input-area">
+  <div id="input-row">
+    <input id="new-todo" type="text" placeholder="할일을 입력하세요 ✏️" maxlength="100" />
+    <button id="add-btn" aria-label="추가">＋</button>
+  </div>
+</div>
+
+<!-- 필터 탭 -->
+<div id="filter-tabs">
+  <button class="tab active" data-filter="all">전체</button>
+  <button class="tab" data-filter="active">진행중</button>
+  <button class="tab" data-filter="done">완료</button>
+</div>
+
+<!-- 할일 목록 -->
+<div id="list-wrap"></div>
+
+<!-- 완료 항목 전체 삭제 -->
+<button id="clear-done">✨ 완료된 항목 지우기</button>
+
+<!-- 빈 상태 -->
+<div id="empty">
+  <span class="emoji">🌷</span>
+  <p>할일이 없어요!<br>위에서 새 할일을 추가해보세요 😊</p>
+</div>
+
+<script>
+  /* ───────────── 상태 & 스토리지 ───────────── */
+  const STORAGE_KEY = 'kawaii_todos_v1';
+
+  // Safari 시크릿 모드 등 localStorage가 차단된 환경 대응
+  function isStorageAvailable() {
+    try { localStorage.setItem('__test__','1'); localStorage.removeItem('__test__'); return true; }
+    catch { return false; }
+  }
+  const HAS_STORAGE = isStorageAvailable();
+
+  function load() {
+    if (!HAS_STORAGE) return [];
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function save(todos) {
+    if (!HAS_STORAGE) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
+
+  // 빠른 연속 추가 시 Date.now() 중복 방지
+  let _idCounter = Date.now();
+  function nextId() { return ++_idCounter; }
+
+  let todos  = load();           // [{id, text, createdAt, doneAt|null}]
+  let filter = 'all';            // 'all' | 'active' | 'done'
+
+  /* ───────────── 날짜 포맷 ───────────── */
+  function fmtDate(iso) {
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} `
+         + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function todayStr() {
+    const d = new Date();
+    const days = ['일','월','화','수','목','금','토'];
+    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+  }
+
+  /* ───────────── 렌더링 ───────────── */
+  function filtered() {
+    if (filter === 'active') return todos.filter(t => !t.doneAt);
+    if (filter === 'done')   return todos.filter(t =>  t.doneAt);
+    return todos;
+  }
+
+  function render() {
+    const list = document.getElementById('list-wrap');
+    const empty = document.getElementById('empty');
+    list.innerHTML = '';
+
+    const items = filtered();
+
+    if (items.length === 0) {
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      items.forEach(todo => {
+        const card = document.createElement('div');
+        card.className = 'todo-card' + (todo.doneAt ? ' done' : '');
+        card.dataset.id = todo.id;
+
+        card.innerHTML = `
+          <label class="cb-wrap" aria-label="${todo.doneAt ? '완료 취소' : '완료 표시'}">
+            <input type="checkbox" ${todo.doneAt ? 'checked' : ''} />
+            <span class="cb-box"></span>
+          </label>
+          <div class="todo-body">
+            <div class="todo-text">${escHtml(todo.text)}</div>
+            <div class="todo-meta">
+              <span class="meta-chip chip-created">📅 ${fmtDate(todo.createdAt)}</span>
+              ${todo.doneAt
+                ? `<span class="meta-chip chip-done">✅ 완료 ${fmtDate(todo.doneAt)}</span>`
+                : ''}
+            </div>
+          </div>
+          <button class="del-btn" aria-label="삭제">🗑</button>
+        `;
+
+        // 체크박스 토글
+        card.querySelector('input[type=checkbox]').addEventListener('change', e => {
+          toggle(todo.id, e.target.checked);
+        });
+        // 삭제
+        card.querySelector('.del-btn').addEventListener('click', () => del(todo.id));
+
+        list.appendChild(card);
+      });
+    }
+
+    updateStats();
+  }
+
+  function updateStats() {
+    const total = todos.length;
+    const done  = todos.filter(t => t.doneAt).length;
+    document.getElementById('stat-total').textContent = `전체 ${total}`;
+    document.getElementById('stat-done').textContent  = `완료 ${done}`;
+    document.getElementById('stat-left').textContent  = `남은 것 ${total - done}`;
+  }
+
+  /* ───────────── CRUD ───────────── */
+  function add(text) {
+    text = text.trim();
+    if (!text) return;
+    todos.unshift({ id: nextId(), text, createdAt: new Date().toISOString(), doneAt: null });
+    save(todos);
+    render();
+  }
+
+  function toggle(id, checked) {
+    todos = todos.map(t =>
+      t.id === id ? { ...t, doneAt: checked ? new Date().toISOString() : null } : t
+    );
+    save(todos);
+    render();
+  }
+
+  function del(id) {
+    todos = todos.filter(t => t.id !== id);
+    save(todos);
+    render();
+  }
+
+  function clearDone() {
+    todos = todos.filter(t => !t.doneAt);
+    save(todos);
+    render();
+  }
+
+  /* ───────────── XSS 방어 ───────────── */
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+              .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+              .replace(/'/g,'&#x27;');
+  }
+
+  /* ───────────── 이벤트 바인딩 ───────────── */
+  document.getElementById('add-btn').addEventListener('click', () => {
+    const inp = document.getElementById('new-todo');
+    add(inp.value);
+    inp.value = '';
+    inp.focus();
+  });
+
+  document.getElementById('new-todo').addEventListener('keydown', e => {
+    // e.isComposing: 한글/일본어 등 IME 조합 중일 때 true
+    // 조합 확정 Enter와 실제 Enter를 구분해서 중복 추가 방지
+    if (e.key === 'Enter' && !e.isComposing) {
+      document.getElementById('add-btn').click();
+    }
+  });
+
+  document.getElementById('filter-tabs').addEventListener('click', e => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    filter = tab.dataset.filter;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+    render();
+  });
+
+  document.getElementById('clear-done').addEventListener('click', () => {
+    const count = todos.filter(t => t.doneAt).length;
+    if (count === 0) return;
+    if (confirm(`완료된 항목 ${count}개를 모두 삭제할까요?`)) clearDone();
+  });
+
+  /* ───────────── 초기화 ───────────── */
+  document.getElementById('today-label').textContent = todayStr();
+  render();
+</script>
+</body>
+</html>
