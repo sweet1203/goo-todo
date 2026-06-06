@@ -418,8 +418,8 @@
 
 <!-- 필터 탭 -->
 <div id="filter-tabs">
-  <button class="tab active" data-filter="all">전체</button>
-  <button class="tab" data-filter="active">진행중</button>
+  <button class="tab" data-filter="all">전체</button>
+  <button class="tab active" data-filter="active">진행중</button>
   <button class="tab" data-filter="done">완료</button>
 </div>
 
@@ -442,7 +442,7 @@
 
   /* ───────── 상태 ───────── */
   let todos   = [];
-  let filter  = 'all';
+  let filter  = 'active';
   let devMode = false;      // true = 개발자 (Notion 동기화)
   let devToken = null;      // Bearer 토큰
   let isSyncing = false;    // Notion 동기화 중 여부
@@ -629,15 +629,13 @@
   }
 
   function clearDone() {
-    const doneTodos = todos.filter(t => t.doneAt);
+    const count = todos.filter(t => t.doneAt).length;
     todos = todos.filter(t => !t.doneAt);
     render();
 
     if (devMode) {
-      doneTodos.forEach(t => {
-        if (t.notionId) notionDelete(t.notionId).catch(() => {});
-      });
-      toast(`🧹 Notion에서 완료 ${doneTodos.length}개 삭제됐어요`);
+      // Notion에서는 삭제하지 않고 웹 뷰에서만 숨깁니다
+      toast(`✨ 웹에서 ${count}개 정리됐어요 (Notion에는 유지돼요)`);
     } else {
       saveLocal(todos);
     }

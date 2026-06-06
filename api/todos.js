@@ -27,11 +27,14 @@ function notionHeaders() {
 // Notion 페이지 → 앱 투두 객체 변환
 function pageToTodo(page) {
   const titleArr = page.properties['할일']?.title || [];
+  const doneAt = page.properties['완료일']?.date?.start || null;
+  // Notion '완료' 체크박스가 체크돼 있으면 완료일이 없어도 완료로 처리
+  const checkbox = page.properties['완료']?.checkbox ?? false;
   return {
     notionId: page.id,
     text: titleArr[0]?.plain_text || '(제목 없음)',
     createdAt: page.properties['작성일']?.date?.start || page.created_time,
-    doneAt: page.properties['완료일']?.date?.start || null,
+    doneAt: doneAt || (checkbox ? page.last_edited_time : null),
   };
 }
 
@@ -99,15 +102,30 @@ export default async function handler(req, res) {
       const { notionId, doneAt } = req.body || {};
       if (!notionId) return res.status(400).json({ error: 'notionId가 없습니다.' });
 
-      const r = await fetch(`${NOTION_API}/pages/${notionId}`, {
+      // '완료' 체크박스 포함해서 먼저 시도, 없으면 완료일만 업데이트
+      let r = await fetch(`${NOTION_API}/pages/${notionId}`, {
         method: 'PATCH',
         headers: notionHeaders(),
         body: JSON.stringify({
           properties: {
             '완료일': doneAt ? { date: { start: doneAt } } : { date: null },
+            '완료': { checkbox: !!doneAt },
           },
         }),
       });
+
+      // '완료' 체크박스 속성이 DB에 없는 경우 완료일만으로 재시도
+      if (!r.ok) {
+        r = await fetch(`${NOTION_API}/pages/${notionId}`, {
+          method: 'PATCH',
+          headers: notionHeaders(),
+          body: JSON.stringify({
+            properties: {
+              '완료일': doneAt ? { date: { start: doneAt } } : { date: null },
+            },
+          }),
+        });
+      }
 
       if (!r.ok) {
         const err = await r.json();
